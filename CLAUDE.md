@@ -55,10 +55,10 @@ SlipSeverity:   1 = minor (streak intact) | 2 = full (streak breaks)
 
 ```
 users
-habits              (habit_direction: build | avoid)
-habit_schedules     (schedule_type, days_of_week JSON, time_of_day, window_start, window_end)
-completion_logs     (log_type: completion | slip, value: duration/count or slip severity)
-pauses              (habit_id nullable = all habits, from_date, to_date, reason)
+habits              (habit_direction: build | avoid, has user_id)
+habit_schedules     (has user_id — denormalized, not just habit_id)
+completion_logs     (log_type: completion | slip, value: duration/count or slip severity, has user_id)
+pauses              (habit_id nullable = all habits, from_date, to_date, reason, has user_id)
 ```
 
 ## MCP Tools

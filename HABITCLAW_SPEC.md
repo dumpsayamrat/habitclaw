@@ -96,7 +96,6 @@ type HabitStore interface {
     // schedules
     SetSchedule(schedule HabitSchedule) error
     GetSchedule(habitID string) (HabitSchedule, error)
-
     // logs
     LogCompletion(log CompletionLog) error
     LogSlip(log CompletionLog) error
@@ -178,6 +177,29 @@ Single row for open source. Cloud version has many rows.
 
 ---
 
+### User ID scoping design
+
+Every table that belongs to a user carries `user_id` directly — no table relies on a JOIN to determine ownership. This is a deliberate design decision:
+
+```
+open source   →  user_id = "local" (from HABITCLAW_USER_ID env var)
+cloud         →  user_id = real user ID injected by JWT middleware
+```
+
+`HabitService` never decides what `user_id` is — it always receives it as a parameter from the caller. The caller (open source `main.go` or cloud Gin middleware) is responsible for injecting the correct value. Core logic never reads config or auth context directly.
+
+```
+Table               Has user_id
+────────────────    ────────────
+users               is the user (PK)
+habits              yes
+habit_schedules     yes (denormalized from habits for consistent scoping)
+completion_logs     yes
+pauses              yes
+```
+
+---
+
 ### `habits`
 ```sql
 id                TEXT PRIMARY KEY
@@ -200,6 +222,9 @@ updated_at        DATETIME NOT NULL
 ```sql
 id               TEXT PRIMARY KEY
 habit_id         TEXT NOT NULL REFERENCES habits(id)
+user_id          TEXT NOT NULL   -- denormalized for consistent user scoping
+                                 -- open source: always "local"
+                                 -- cloud: real user_id from JWT
 schedule_type    TEXT NOT NULL
                  -- daily | specific_days | weekdays | weekends
                  -- times_per_week | every_n_days | weekly | monthly
@@ -275,6 +300,7 @@ type Habit struct {
 type HabitSchedule struct {
     ID           string       `json:"id"`
     HabitID      string       `json:"habit_id"`
+    UserID       string       `json:"user_id"`        // always injected by caller, never set internally
     ScheduleType ScheduleType `json:"schedule_type"`
     DaysOfWeek   []int        `json:"days_of_week,omitempty"` // 1=Mon 7=Sun
     TimesPerWeek int          `json:"times_per_week,omitempty"`
