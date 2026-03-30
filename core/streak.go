@@ -25,7 +25,6 @@ func CalculateStreak(habit Habit, logs []CompletionLog, pauses []Pause, today ti
 		}
 	}
 
-	// Build a set of paused dates
 	pausedDates := make(map[string]bool)
 	for _, p := range pauses {
 		if p.CancelledAt != nil && p.ResumeFrom != nil {
@@ -42,7 +41,6 @@ func CalculateStreak(habit Habit, logs []CompletionLog, pauses []Pause, today ti
 		}
 	}
 
-	// Build a set of completion dates and slip dates with severity
 	completionDates := make(map[string]bool)
 	slipDates := make(map[string]int) // date -> max severity
 	lastActivity := ""
@@ -60,7 +58,6 @@ func CalculateStreak(habit Habit, logs []CompletionLog, pauses []Pause, today ti
 		}
 	}
 
-	// Walk backwards from today to compute current streak
 	current := 0
 	longest := 0
 	streakBroken := false
@@ -68,12 +65,10 @@ func CalculateStreak(habit Habit, logs []CompletionLog, pauses []Pause, today ti
 	for d := today; ; d = d.AddDate(0, 0, -1) {
 		dateStr := d.Format("2006-01-02")
 
-		// Skip paused days
 		if pausedDates[dateStr] {
 			continue
 		}
 
-		// Skip non-scheduled days
 		if !schedule.IsScheduledDay(d, habit.CreatedAt) {
 			// Don't go back more than 365 days
 			if today.Sub(d).Hours() > 365*24 {
@@ -111,7 +106,6 @@ func CalculateStreak(habit Habit, logs []CompletionLog, pauses []Pause, today ti
 		}
 	}
 
-	// Compute longest streak by walking all days
 	tempStreak := 0
 	startDate := today.AddDate(-1, 0, 0)
 	for d := startDate; !d.After(today); d = d.AddDate(0, 0, 1) {
@@ -153,11 +147,51 @@ func CalculateStreak(habit Habit, logs []CompletionLog, pauses []Pause, today ti
 	}
 
 	return Streak{
-		HabitID:          habit.ID,
-		HabitName:        habit.Name,
-		Direction:        string(habit.Direction),
-		Current:          current,
-		Longest:          longest,
-		LastActivityDate: lastActivity,
+		HabitID:            habit.ID,
+		HabitName:          habit.Name,
+		Direction:          string(habit.Direction),
+		Current:            current,
+		Longest:            longest,
+		ConsistencyRate7d:  calculateConsistencyRate(habit, completionDates, slipDates, pausedDates, today, 7),
+		ConsistencyRate30d: calculateConsistencyRate(habit, completionDates, slipDates, pausedDates, today, 30),
+		LastActivityDate:   lastActivity,
 	}
+}
+
+// calculateConsistencyRate returns completed_days / scheduled_days over the last `days` calendar days.
+// Paused days are excluded from both numerator and denominator.
+// For build habits: completed = days with a completion log on a scheduled day.
+// For avoid habits: completed = scheduled days without a full slip (severity=2).
+// Returns 0.0 if there are no scheduled non-paused days in the period.
+func calculateConsistencyRate(habit Habit, completionDates map[string]bool, slipDates map[string]int, pausedDates map[string]bool, today time.Time, days int) float64 {
+	if habit.Schedule == nil {
+		return 0.0
+	}
+	denominator := 0
+	numerator := 0
+	for i := 0; i < days; i++ {
+		d := today.AddDate(0, 0, -i)
+		dateStr := d.Format("2006-01-02")
+		if pausedDates[dateStr] {
+			continue
+		}
+		if !habit.Schedule.IsScheduledDay(d, habit.CreatedAt) {
+			continue
+		}
+		denominator++
+		if habit.Direction == DirectionBuild {
+			if completionDates[dateStr] {
+				numerator++
+			}
+		} else {
+			severity := slipDates[dateStr]
+			if severity < int(SlipFull) {
+				numerator++
+			}
+		}
+	}
+	if denominator == 0 {
+		return 0.0
+	}
+	return float64(numerator) / float64(denominator)
 }
