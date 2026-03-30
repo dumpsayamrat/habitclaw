@@ -11,13 +11,11 @@
 ```
 Phase 1 — Foundation        ██████████  2/2   ✅
 Phase 2 — Core types        ██████████  9/9   ✅
-Phase 3 — Database          ░░░░░░░░░░  0/3
+Phase 3 — Database          ██████████  3/3   ✅
 Phase 4 — MCP server        ░░░░░░░░░░  0/5
-Phase 5 — REST API          ░░░░░░░░░░  0/5
-Phase 6 — Dashboard         ░░░░░░░░░░  0/6
-Phase 7 — Polish            ░░░░░░░░░░  0/3
+Phase 5 — Polish            ░░░░░░░░░░  0/3
 ─────────────────────────────────────────────
-Total                                  11/33
+Total                                  14/22
 ```
 
 ---
@@ -51,9 +49,9 @@ Total                                  11/33
 
 | # | Status | Prompt | File(s) |
 |---|--------|--------|---------|
-| 12 | [ ] | SQL migrations | `adapters/sqlite/migrations/001_init.sql` |
-| 13 | [ ] | SQLite adapter | `adapters/sqlite/store.go` |
-| 14 | [ ] | Single user auth | `adapters/auth/single_user.go` |
+| 12 | [x] | SQL migrations + dialect layer | `adapters/db/dialect.go`, `adapters/db/open.go`, `adapters/db/migrate.go`, `adapters/db/migrations/` |
+| 13 | [x] | Database adapter (HabitStore impl) | `adapters/db/store.go`, `adapters/db/store_test.go` |
+| 14 | [x] | Single user auth + config + wiring | `adapters/auth/single_user.go`, `config/config.go`, `main.go` |
 
 ---
 

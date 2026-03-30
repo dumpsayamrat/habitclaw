@@ -6,12 +6,27 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/dumpsayamrat/habitclaw/adapters/db"
 	"github.com/dumpsayamrat/habitclaw/config"
+	"github.com/dumpsayamrat/habitclaw/core"
 	"github.com/dumpsayamrat/habitclaw/web"
 )
 
 func main() {
 	cfg := config.Load()
+
+	database, dialect, err := db.OpenDatabase(cfg.DBType, cfg.DSN())
+	if err != nil {
+		log.Fatalf("Failed to open database: %v", err)
+	}
+	defer database.Close()
+
+	if err := db.Migrate(database, dialect); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+
+	store := db.NewStore(database, dialect)
+	_ = core.NewHabitService(store)
 
 	mux := http.NewServeMux()
 
