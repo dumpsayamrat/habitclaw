@@ -74,7 +74,7 @@ func CalculateStreak(habit Habit, logs []CompletionLog, pauses []Pause, today ti
 		}
 
 		// Skip non-scheduled days
-		if !schedule.IsScheduledDay(d) {
+		if !schedule.IsScheduledDay(d, habit.CreatedAt) {
 			// Don't go back more than 365 days
 			if today.Sub(d).Hours() > 365*24 {
 				break
@@ -120,7 +120,7 @@ func CalculateStreak(habit Habit, logs []CompletionLog, pauses []Pause, today ti
 		if pausedDates[dateStr] {
 			continue
 		}
-		if !schedule.IsScheduledDay(d) {
+		if !schedule.IsScheduledDay(d, habit.CreatedAt) {
 			continue
 		}
 

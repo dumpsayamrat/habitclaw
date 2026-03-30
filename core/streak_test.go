@@ -19,7 +19,7 @@ func TestCalculateStreak(t *testing.T) {
 	}{
 		{
 			name:  "build habit: consecutive completions increment streak",
-			habit: newTestHabit("Running", DirectionBuild, GoalDuration, dailySchedule),
+			habit: newTestHabit("Running", DirectionBuild, GoalTypeDuration, dailySchedule),
 			logs: func() []CompletionLog {
 				// 5 consecutive days of completions ending today (2026-03-30)
 				habitID := "test-Running"
@@ -37,7 +37,7 @@ func TestCalculateStreak(t *testing.T) {
 		},
 		{
 			name:  "build habit: missed day resets streak",
-			habit: newTestHabit("Running", DirectionBuild, GoalDuration, dailySchedule),
+			habit: newTestHabit("Running", DirectionBuild, GoalTypeDuration, dailySchedule),
 			logs: func() []CompletionLog {
 				// Completed 26-27, missed 28, completed 29-30
 				habitID := "test-Running"
@@ -55,7 +55,7 @@ func TestCalculateStreak(t *testing.T) {
 		},
 		{
 			name:  "build habit: paused days do NOT break streak",
-			habit: newTestHabit("Running", DirectionBuild, GoalDuration, dailySchedule),
+			habit: newTestHabit("Running", DirectionBuild, GoalTypeDuration, dailySchedule),
 			logs: func() []CompletionLog {
 				// Completed 26-27, paused 28, completed 29-30
 				habitID := "test-Running"
@@ -75,7 +75,7 @@ func TestCalculateStreak(t *testing.T) {
 		},
 		{
 			name:  "build habit: non-scheduled days are ignored",
-			habit: newTestHabit("Running", DirectionBuild, GoalDuration, mwfSchedule),
+			habit: newTestHabit("Running", DirectionBuild, GoalTypeDuration, mwfSchedule),
 			logs: func() []CompletionLog {
 				// 2026-03-30 is Monday (1), 2026-03-27 is Friday (5), 2026-03-25 is Wednesday (3)
 				habitID := "test-Running"
@@ -92,7 +92,7 @@ func TestCalculateStreak(t *testing.T) {
 		},
 		{
 			name:  "avoid habit: clean days increment streak",
-			habit: newTestHabit("NoSocialMedia", DirectionAvoid, GoalBoolean, dailySchedule),
+			habit: newTestHabit("NoSocialMedia", DirectionAvoid, GoalTypeBoolean, dailySchedule),
 			logs:  nil, // no slips = clean days
 			pauses: nil,
 			wantCurrent: 367, // walks back 365+ days with no slips on daily schedule (inclusive of today and start)
@@ -100,7 +100,7 @@ func TestCalculateStreak(t *testing.T) {
 		},
 		{
 			name:  "avoid habit: minor slip (severity=1) does NOT break streak",
-			habit: newTestHabit("NoSocialMedia", DirectionAvoid, GoalBoolean, dailySchedule),
+			habit: newTestHabit("NoSocialMedia", DirectionAvoid, GoalTypeBoolean, dailySchedule),
 			logs: func() []CompletionLog {
 				habitID := "test-NoSocialMedia"
 				return []CompletionLog{
@@ -114,7 +114,7 @@ func TestCalculateStreak(t *testing.T) {
 		},
 		{
 			name:  "avoid habit: full slip (severity=2) breaks streak",
-			habit: newTestHabit("NoSocialMedia", DirectionAvoid, GoalBoolean, dailySchedule),
+			habit: newTestHabit("NoSocialMedia", DirectionAvoid, GoalTypeBoolean, dailySchedule),
 			logs: func() []CompletionLog {
 				habitID := "test-NoSocialMedia"
 				return []CompletionLog{
@@ -128,7 +128,7 @@ func TestCalculateStreak(t *testing.T) {
 		},
 		{
 			name:  "avoid habit: paused days do NOT break streak",
-			habit: newTestHabit("NoSocialMedia", DirectionAvoid, GoalBoolean, dailySchedule),
+			habit: newTestHabit("NoSocialMedia", DirectionAvoid, GoalTypeBoolean, dailySchedule),
 			logs: func() []CompletionLog {
 				habitID := "test-NoSocialMedia"
 				return []CompletionLog{
@@ -169,7 +169,7 @@ func TestCalculateStreak(t *testing.T) {
 
 func TestCalculateStreak_NoSchedule(t *testing.T) {
 	// A habit with no schedule should return a zero streak
-	habit := newTestHabit("NoSchedule", DirectionBuild, GoalDuration, nil)
+	habit := newTestHabit("NoSchedule", DirectionBuild, GoalTypeDuration, nil)
 	result := CalculateStreak(habit, nil, nil, makeDate(2026, 3, 30))
 
 	if result.Current != 0 {

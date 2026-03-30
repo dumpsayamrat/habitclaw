@@ -1,10 +1,17 @@
 package core
 
-import (
-	"errors"
-	"time"
+import "time"
+
+// GoalType defines how a habit completion is measured
+type GoalType string
+
+const (
+	GoalTypeDuration GoalType = "duration"
+	GoalTypeCount    GoalType = "count"
+	GoalTypeBoolean  GoalType = "boolean"
 )
 
+// HabitDirection defines whether this is a build or avoid habit
 type HabitDirection string
 
 const (
@@ -12,14 +19,7 @@ const (
 	DirectionAvoid HabitDirection = "avoid"
 )
 
-type GoalType string
-
-const (
-	GoalDuration GoalType = "duration"
-	GoalCount    GoalType = "count"
-	GoalBoolean  GoalType = "boolean"
-)
-
+// Habit represents a single tracked habit
 type Habit struct {
 	ID          string         `json:"id"`
 	UserID      string         `json:"user_id"`
@@ -36,19 +36,26 @@ type Habit struct {
 	UpdatedAt   time.Time      `json:"updated_at"`
 }
 
-func (h Habit) Validate() error {
+// IsValid returns an error string if the habit is invalid, empty string if valid
+func (h Habit) IsValid() string {
 	if h.Name == "" {
-		return errors.New("habit name is required")
+		return "habit name is required"
 	}
 	switch h.GoalType {
-	case GoalDuration, GoalCount, GoalBoolean:
+	case GoalTypeDuration, GoalTypeCount, GoalTypeBoolean:
 	default:
-		return errors.New("invalid goal type: must be duration, count, or boolean")
+		return "invalid goal type: must be duration, count, or boolean"
 	}
 	switch h.Direction {
 	case DirectionBuild, DirectionAvoid:
 	default:
-		return errors.New("invalid direction: must be build or avoid")
+		return "invalid direction: must be build or avoid"
 	}
-	return nil
+	if h.GoalValue < 0 {
+		return "goal value must be >= 0"
+	}
+	if h.GoalType == GoalTypeBoolean && h.GoalValue != 0 {
+		return "goal value must be 0 for boolean goal type"
+	}
+	return ""
 }

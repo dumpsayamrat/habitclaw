@@ -2,7 +2,7 @@ package core
 
 import "testing"
 
-func TestHabitValidate(t *testing.T) {
+func TestHabitIsValid(t *testing.T) {
 	tests := []struct {
 		name    string
 		habit   Habit
@@ -11,22 +11,22 @@ func TestHabitValidate(t *testing.T) {
 	}{
 		{
 			name:    "valid build habit with duration goal",
-			habit:   Habit{Name: "Running", GoalType: GoalDuration, Direction: DirectionBuild},
+			habit:   Habit{Name: "Running", GoalType: GoalTypeDuration, Direction: DirectionBuild},
 			wantErr: false,
 		},
 		{
 			name:    "valid avoid habit with boolean goal",
-			habit:   Habit{Name: "No social media", GoalType: GoalBoolean, Direction: DirectionAvoid},
+			habit:   Habit{Name: "No social media", GoalType: GoalTypeBoolean, Direction: DirectionAvoid},
 			wantErr: false,
 		},
 		{
 			name:    "valid build habit with count goal",
-			habit:   Habit{Name: "Push-ups", GoalType: GoalCount, Direction: DirectionBuild},
+			habit:   Habit{Name: "Push-ups", GoalType: GoalTypeCount, Direction: DirectionBuild},
 			wantErr: false,
 		},
 		{
 			name:    "empty name is rejected",
-			habit:   Habit{Name: "", GoalType: GoalDuration, Direction: DirectionBuild},
+			habit:   Habit{Name: "", GoalType: GoalTypeDuration, Direction: DirectionBuild},
 			wantErr: true,
 			errMsg:  "habit name is required",
 		},
@@ -38,31 +38,43 @@ func TestHabitValidate(t *testing.T) {
 		},
 		{
 			name:    "invalid direction is rejected",
-			habit:   Habit{Name: "Test", GoalType: GoalDuration, Direction: "invalid"},
+			habit:   Habit{Name: "Test", GoalType: GoalTypeDuration, Direction: "invalid"},
 			wantErr: true,
 			errMsg:  "invalid direction",
+		},
+		{
+			name:    "negative goal value is rejected",
+			habit:   Habit{Name: "Test", GoalType: GoalTypeDuration, Direction: DirectionBuild, GoalValue: -1},
+			wantErr: true,
+			errMsg:  "goal value must be >= 0",
+		},
+		{
+			name:    "boolean with goal_value > 0 is rejected",
+			habit:   Habit{Name: "Test", GoalType: GoalTypeBoolean, Direction: DirectionBuild, GoalValue: 5},
+			wantErr: true,
+			errMsg:  "goal value must be 0 for boolean goal type",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.habit.Validate()
-			if tt.wantErr && err == nil {
-				t.Errorf("expected error containing %q, got nil", tt.errMsg)
+			errStr := tt.habit.IsValid()
+			if tt.wantErr && errStr == "" {
+				t.Errorf("expected error containing %q, got empty string", tt.errMsg)
 			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("expected no error, got %v", err)
+			if !tt.wantErr && errStr != "" {
+				t.Errorf("expected no error, got %q", errStr)
 			}
-			if tt.wantErr && err != nil && tt.errMsg != "" {
-				if got := err.Error(); got != tt.errMsg && !contains(got, tt.errMsg) {
-					t.Errorf("expected error containing %q, got %q", tt.errMsg, got)
+			if tt.wantErr && errStr != "" && tt.errMsg != "" {
+				if !contains(errStr, tt.errMsg) {
+					t.Errorf("expected error containing %q, got %q", tt.errMsg, errStr)
 				}
 			}
 		})
 	}
 }
 
-func TestHabitScheduleValidate(t *testing.T) {
+func TestHabitScheduleIsValid(t *testing.T) {
 	tests := []struct {
 		name     string
 		schedule HabitSchedule
@@ -110,42 +122,83 @@ func TestHabitScheduleValidate(t *testing.T) {
 			wantErr:  false,
 		},
 		{
+			name:     "all valid day_of_week values 1-7 pass",
+			schedule: HabitSchedule{ScheduleType: ScheduleSpecificDays, DaysOfWeek: []int{1, 2, 3, 4, 5, 6, 7}},
+			wantErr:  false,
+		},
+		{
 			name:     "invalid schedule type is rejected",
 			schedule: HabitSchedule{ScheduleType: "invalid"},
 			wantErr:  true,
 			errMsg:   "invalid schedule type",
 		},
 		{
-			name:     "day_of_week value 0 is rejected (must be 1-7)",
+			name:     "specific_days with empty array is rejected",
+			schedule: HabitSchedule{ScheduleType: ScheduleSpecificDays, DaysOfWeek: []int{}},
+			wantErr:  true,
+			errMsg:   "specific_days schedule requires days_of_week",
+		},
+		{
+			name:     "specific_days day value 0 is rejected (must be 1-7)",
 			schedule: HabitSchedule{ScheduleType: ScheduleSpecificDays, DaysOfWeek: []int{0, 3}},
 			wantErr:  true,
 			errMsg:   "days_of_week values must be between 1 (Mon) and 7 (Sun)",
 		},
 		{
-			name:     "day_of_week value 8 is rejected (must be 1-7)",
+			name:     "specific_days day value 8 is rejected (must be 1-7)",
 			schedule: HabitSchedule{ScheduleType: ScheduleSpecificDays, DaysOfWeek: []int{1, 8}},
 			wantErr:  true,
 			errMsg:   "days_of_week values must be between 1 (Mon) and 7 (Sun)",
 		},
 		{
-			name:     "all valid day_of_week values 1-7 pass",
-			schedule: HabitSchedule{ScheduleType: ScheduleSpecificDays, DaysOfWeek: []int{1, 2, 3, 4, 5, 6, 7}},
+			name:     "times_per_week = 0 is rejected",
+			schedule: HabitSchedule{ScheduleType: ScheduleTimesPerWeek, TimesPerWeek: 0},
+			wantErr:  true,
+			errMsg:   "times_per_week must be >= 1",
+		},
+		{
+			name:     "every_n_days = 0 is rejected",
+			schedule: HabitSchedule{ScheduleType: ScheduleEveryNDays, EveryNDays: 0},
+			wantErr:  true,
+			errMsg:   "every_n_days must be >= 1",
+		},
+		{
+			name:     "monthly day_of_month = 0 is rejected",
+			schedule: HabitSchedule{ScheduleType: ScheduleMonthly, DayOfMonth: 0},
+			wantErr:  true,
+			errMsg:   "day_of_month must be between 1 and 31",
+		},
+		{
+			name:     "monthly day_of_month = 32 is rejected",
+			schedule: HabitSchedule{ScheduleType: ScheduleMonthly, DayOfMonth: 32},
+			wantErr:  true,
+			errMsg:   "day_of_month must be between 1 and 31",
+		},
+		{
+			name:     "invalid time_of_day format is rejected",
+			schedule: HabitSchedule{ScheduleType: ScheduleDaily, TimeOfDay: "6:30"},
+			wantErr:  true,
+			errMsg:   "time_of_day must be in HH:MM format",
+		},
+		{
+			name:     "valid time_of_day 06:30",
+			schedule: HabitSchedule{ScheduleType: ScheduleDaily, TimeOfDay: "06:30"},
 			wantErr:  false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.schedule.Validate()
-			if tt.wantErr && err == nil {
-				t.Errorf("expected error containing %q, got nil", tt.errMsg)
+			errStr := tt.schedule.IsValid()
+			if tt.wantErr && errStr == "" {
+				t.Errorf("expected error containing %q, got empty string", tt.errMsg)
 			}
-			if !tt.wantErr && err != nil {
-				t.Errorf("expected no error, got %v", err)
+			if !tt.wantErr && errStr != "" {
+				t.Errorf("expected no error, got %q", errStr)
 			}
-			if tt.wantErr && err != nil && tt.errMsg != "" {
-				if got := err.Error(); !contains(got, tt.errMsg) {
-					t.Errorf("expected error containing %q, got %q", tt.errMsg, got)
+			if tt.wantErr && errStr != "" && tt.errMsg != "" {
+				if !contains(errStr, tt.errMsg) {
+					t.Errorf("expected error containing %q, got %q", tt.errMsg, errStr)
 				}
 			}
 		})
