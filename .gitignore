@@ -7,6 +7,13 @@
 *.dll
 *.so
 *.dylib
+habitclaw
+
+# SQLite database
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 
 # Test binary, built with `go test -c`
 *.test

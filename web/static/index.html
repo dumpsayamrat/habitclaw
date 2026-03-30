@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HabitClaw</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>HabitClaw &#x1F99E;</h1>
+        <div id="status" class="status">Checking...</div>
+        <pre id="response"></pre>
+    </div>
+    <script>
+        (async function() {
+            const statusEl = document.getElementById("status");
+            const responseEl = document.getElementById("response");
+            try {
+                const res = await fetch("/api/health");
+                const data = await res.json();
+                statusEl.className = "status ok";
+                statusEl.textContent = "\u2705 HabitClaw is running \u00B7 v" + data.version;
+                responseEl.textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+                statusEl.className = "status error";
+                statusEl.textContent = "\u274C Could not reach HabitClaw";
+                responseEl.textContent = err.message;
+            }
+        })();
+    </script>
+</body>
+</html>
